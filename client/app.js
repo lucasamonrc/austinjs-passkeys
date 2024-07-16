@@ -1,13 +1,3 @@
-function base64ToUint8Array(base64) {
-  const binaryString = window.atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-
 document
   .getElementById("signin-form")
   .addEventListener("submit", async (event) => {
@@ -15,9 +5,49 @@ document
 
     const email = document.getElementById("email-signin").value;
 
-    console.log({ email });
+    try {
+      let response = await fetch("/api/signin/start", {
+        body: JSON.stringify({ email }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
 
-    document.getElementById("email-signin").value = "";
+      const options = await response.json();
+
+      if (!response.ok) {
+        throw new Error(options.message);
+      }
+
+      const authRes = await SimpleWebAuthnBrowser.startAuthentication(options);
+
+      response = await fetch("/api/signin/finish", {
+        body: JSON.stringify({ email, data: authRes }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
+      document.getElementById("profile").innerHTML = `
+        <div><strong>ID:</strong> ${data.user.id}</div>
+        <div><strong>E-mail:</strong> ${data.user.email}</div>
+        <div><strong>Name:</strong> ${data.user.name}</div>
+      `;
+
+      document.getElementById("email-signin").value = "";
+      document.getElementById("message").innerHTML =
+        "User was registered successfully!";
+    } catch (error) {
+      console.error(error);
+      document.getElementById("message").innerHTML = error.message;
+    }
   });
 
 document
@@ -29,7 +59,7 @@ document
     const name = document.getElementById("name-signup").value;
 
     try {
-      const response = await fetch("/api/signup/start", {
+      let response = await fetch("/api/signup/start", {
         body: JSON.stringify({ email, name }),
         headers: {
           "Content-Type": "application/json",
@@ -58,15 +88,19 @@ document
 
       // (B) Use a library,
       const authRes = await SimpleWebAuthnBrowser.startRegistration(options);
-      console.log(authRes);
 
-      await fetch("/api/signup/finish", {
+      response = await fetch("/api/signup/finish", {
         body: JSON.stringify({ email, data: authRes }),
         headers: {
           "Content-Type": "application/json",
         },
         method: "POST",
       });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message);
+      }
 
       document.getElementById("email-signup").value = "";
       document.getElementById("name-signup").value = "";
