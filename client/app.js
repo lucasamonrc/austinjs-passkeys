@@ -42,8 +42,7 @@ document
       `;
 
       document.getElementById("email-signin").value = "";
-      document.getElementById("message").innerHTML =
-        "User was registered successfully!";
+      document.getElementById("message").innerHTML = "";
     } catch (error) {
       console.error(error);
       document.getElementById("message").innerHTML = error.message;
@@ -77,16 +76,6 @@ document
         credProps: true,
       };
 
-      // Two ways of doing this:
-      // (A) use the native browser API
-      // options.challenge = base64ToUint8Array(options.challenge);
-      // options.user.id = base64ToUint8Array(options.user.id);
-      // const credential = await navigator.credentials.create({
-      //   publicKey: options,
-      // });
-      // console.log(credential);
-
-      // (B) Use a library,
       const authRes = await SimpleWebAuthnBrowser.startRegistration(options);
 
       response = await fetch("/api/signup/finish", {

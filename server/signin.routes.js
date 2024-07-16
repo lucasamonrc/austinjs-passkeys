@@ -18,15 +18,10 @@ signin.post("/start", async (req, res) => {
 
   const options = {
     timeout: 60_000, // 1 minute
-    allowCredentials: [],
-    devices:
-      user && user.devices
-        ? user.devices.map((device) => ({
-            id: device.credentialID,
-            type: "public-key",
-            transports: device.transports,
-          }))
-        : [],
+    allowCredentials: user.devices.map((device) => ({
+      id: device.credentialID,
+      transports: device.transports,
+    })),
     userVerification: "required",
     rpID: req.hostname,
   };
