@@ -2,10 +2,9 @@ const express = require("express");
 const SimpleWebAuthnServer = require("@simplewebauthn/server");
 
 const db = require("./db");
+const { ORIGIN } = require("./constants");
 
 const signin = express.Router();
-
-signin.use(express.json());
 
 signin.post("/start", async (req, res) => {
   const { email } = req.body;
@@ -13,9 +12,10 @@ signin.post("/start", async (req, res) => {
   const user = db.users.find((user) => user.email === email);
 
   if (!user) {
-    return res.status(404).json({ message: "User does not exist" });
+    return res.status(400).json({ message: "Cannot sign in this user" });
   }
 
+  // TODO: Implement generate verification request flow
   const options = {
     timeout: 60_000, // 1 minute
     allowCredentials: user.devices.map((device) => ({
@@ -40,11 +40,12 @@ signin.post("/finish", async (req, res) => {
   const user = db.users.find((user) => user.email === email);
 
   if (!user) {
-    return res.status(404).json({ message: "User could not be found" });
+    return res.status(400).json({ message: "Cannot sign in this user" });
   }
 
   const expectedChallenge = user.challenge;
 
+  // TODO: Implement passkey verification
   const authenticator = user.devices.find(
     (device) => device.credentialID === data.rawId
   );
@@ -78,6 +79,8 @@ signin.post("/finish", async (req, res) => {
   if (verified) {
     authenticator.counter = authenticationInfo.newCounter;
   }
+
+  delete user.challenge;
 
   return res.json({
     user: {

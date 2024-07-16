@@ -4,7 +4,7 @@ const SimpleWebAuthnServer = require("@simplewebauthn/server");
 const { isoUint8Array } = require("@simplewebauthn/server/helpers");
 
 const db = require("./db");
-const { RP_NAME } = require("./constants");
+const { RP_NAME, ORIGIN } = require("./constants");
 
 const signup = express.Router();
 
@@ -27,7 +27,7 @@ signup.post("/start", async (req, res) => {
     email,
   };
 
-  // TODO: Start a WebAuthn registration flow
+  // TODO: Generate a WebAuthn registration request flow
   const options = {
     rpName: RP_NAME,
     rpID: req.hostname,
@@ -46,6 +46,7 @@ signup.post("/start", async (req, res) => {
 
   const registrationOptions =
     await SimpleWebAuthnServer.generateRegistrationOptions(options);
+
   user.challenge = registrationOptions.challenge;
 
   db.users.push(user);
@@ -64,12 +65,13 @@ signup.post("/finish", async (req, res) => {
 
   const expectedChallenge = user.challenge;
 
+  // TODO: Verify the WebAuthn registration response
   let verification;
   try {
     const options = {
       response: data,
       expectedChallenge: `${expectedChallenge}`,
-      expectedOrigin: "http://localhost:3000",
+      expectedOrigin: ORIGIN,
       expectedRPID: req.hostname,
       requireUserVerification: true,
     };
@@ -99,7 +101,7 @@ signup.post("/finish", async (req, res) => {
     user.devices.push(newDevice);
   }
 
-  user.challenge = "";
+  delete user.challenge;
 
   return res.status(204).send();
 });
