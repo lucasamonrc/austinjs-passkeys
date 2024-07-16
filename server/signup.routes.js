@@ -54,7 +54,54 @@ signup.post("/start", async (req, res) => {
 });
 
 signup.post("/finish", async (req, res) => {
-  throw new Error("Not implemented");
+  const { email, data } = req.body;
+
+  const user = db.users.find((user) => user.email === email);
+
+  if (!user) {
+    return res.status(404).json({ message: "User could not be found" });
+  }
+
+  const expectedChallenge = user.challenge;
+
+  let verification;
+  try {
+    const options = {
+      response: data,
+      expectedChallenge: `${expectedChallenge}`,
+      expectedOrigin: "http://localhost:3000",
+      expectedRPID: req.hostname,
+      requireUserVerification: true,
+    };
+    verification = await SimpleWebAuthnServer.verifyRegistrationResponse(
+      options
+    );
+  } catch (error) {
+    console.log(error);
+    return res.status(400).send({ message: error.toString() });
+  }
+
+  const { verified, registrationInfo } = verification;
+
+  if (verified && registrationInfo) {
+    const { credentialPublicKey, credentialID, counter } = registrationInfo;
+
+    const newDevice = {
+      credentialPublicKey,
+      credentialID,
+      counter,
+      transports: data.response.transports,
+    };
+    if (user.devices == undefined) {
+      user.devices = [];
+    }
+    user.webauthn = true;
+    user.devices.push(newDevice);
+  }
+
+  user.challenge = "";
+
+  return res.status(204).send();
 });
 
 module.exports = signup;
