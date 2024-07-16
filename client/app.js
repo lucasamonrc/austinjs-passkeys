@@ -18,7 +18,16 @@ document
     const email = document.getElementById("email-signup").value;
     const name = document.getElementById("name-signup").value;
 
-    console.log({ email, name });
+    const response = await fetch("/api/signup/start", {
+      body: JSON.stringify({ email, name }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+    const data = await response.json();
+
+    console.log(data);
 
     document.getElementById("email-signup").value = "";
     document.getElementById("name-signup").value = "";
