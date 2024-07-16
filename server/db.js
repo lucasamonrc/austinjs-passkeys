@@ -6,12 +6,9 @@ class Db {
       throw new Error("You can only create one instance of db.js");
     }
 
-    this.users = {};
-    this.credentials = {};
-    this.session = {
-      challenge: undefined,
-      user: undefined,
-    };
+    this.users = [];
+    this.credentials = [];
+    this.session = [];
     instance = this;
   }
 }
