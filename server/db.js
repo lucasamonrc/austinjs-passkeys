@@ -7,8 +7,6 @@ class Db {
     }
 
     this.users = [];
-    this.credentials = [];
-    this.session = [];
     instance = this;
   }
 }
