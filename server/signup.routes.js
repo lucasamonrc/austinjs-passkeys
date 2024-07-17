@@ -27,25 +27,22 @@ signup.post("/start", async (req, res) => {
     email,
   };
 
-  // TODO: Generate a WebAuthn registration request flow
-  const options = {
-    rpName: RP_NAME,
-    rpID: req.hostname,
-    userID: isoUint8Array.fromUTF8String(user.id),
-    userName: user.email,
-    userDisplayName: user.name,
-    timeout: 60000, // 1 Minute
-    attestationType: "none",
-    excludeCredentials: [],
-    authenticatorSelection: {
-      userVerification: "preferred",
-      residentKey: "required",
-    },
-    supportedAlgorithmIDs: [-7, -257],
-  };
-
   const registrationOptions =
-    await SimpleWebAuthnServer.generateRegistrationOptions(options);
+    await SimpleWebAuthnServer.generateRegistrationOptions({
+      rpName: RP_NAME,
+      rpID: req.hostname,
+      userID: isoUint8Array.fromUTF8String(user.id),
+      userName: user.email,
+      userDisplayName: user.name,
+      timeout: 60_000,
+      attestationType: "none",
+      excludeCredentials: [],
+      authenticatorSelection: {
+        userVerification: "preferred",
+        residentKey: "required",
+      },
+      supportedAlgorithmIDs: [-7, -257],
+    });
 
   user.challenge = registrationOptions.challenge;
 
@@ -65,19 +62,15 @@ signup.post("/finish", async (req, res) => {
 
   const expectedChallenge = user.challenge;
 
-  // TODO: Verify the WebAuthn registration response
   let verification;
   try {
-    const options = {
+    verification = await SimpleWebAuthnServer.verifyRegistrationResponse({
       response: data,
       expectedChallenge: `${expectedChallenge}`,
       expectedOrigin: ORIGIN,
       expectedRPID: req.hostname,
       requireUserVerification: true,
-    };
-    verification = await SimpleWebAuthnServer.verifyRegistrationResponse(
-      options
-    );
+    });
   } catch (error) {
     console.log(error);
     return res.status(400).send({ message: error.toString() });

@@ -15,19 +15,16 @@ signin.post("/start", async (req, res) => {
     return res.status(400).json({ message: "Cannot sign in this user" });
   }
 
-  // TODO: Implement generate verification request flow
-  const options = {
-    timeout: 60_000, // 1 minute
-    allowCredentials: user.devices.map((device) => ({
-      id: device.credentialID,
-      transports: device.transports,
-    })),
-    userVerification: "required",
-    rpID: req.hostname,
-  };
-
   const signinOptions =
-    await SimpleWebAuthnServer.generateAuthenticationOptions(options);
+    await SimpleWebAuthnServer.generateAuthenticationOptions({
+      timeout: 60_000,
+      allowCredentials: user.devices.map((device) => ({
+        id: device.credentialID,
+        transports: device.transports,
+      })),
+      userVerification: "required",
+      rpID: req.hostname,
+    });
 
   user.challenge = signinOptions.challenge;
 
@@ -45,7 +42,6 @@ signin.post("/finish", async (req, res) => {
 
   const expectedChallenge = user.challenge;
 
-  // TODO: Implement passkey verification
   const authenticator = user.devices.find(
     (device) => device.credentialID === data.rawId
   );
@@ -56,19 +52,16 @@ signin.post("/finish", async (req, res) => {
 
   let verification;
   try {
-    const options = {
+    verification = await SimpleWebAuthnServer.verifyAuthenticationResponse({
       response: data,
       expectedChallenge: `${expectedChallenge}`,
-      expectedOrigin: "http://localhost:3000",
+      expectedOrigin: ORIGIN,
       expectedRPID: req.hostname,
       authenticator: {
         ...authenticator,
       },
       requireUserVerification: true,
-    };
-    verification = await SimpleWebAuthnServer.verifyAuthenticationResponse(
-      options
-    );
+    });
   } catch (error) {
     console.log(error);
     return res.status(400).send({ message: error.toString() });
