@@ -15,16 +15,20 @@ document
         method: "POST",
       });
 
-      const data = await response.json();
+      let data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message);
       }
 
-      // TODO: Implement passkeys registration
+      data.extensions = {
+        credProps: true,
+      };
+
+      const registration = await SimpleWebAuthnBrowser.startRegistration(data);
 
       response = await fetch("/api/signup/finish", {
-        body: JSON.stringify({ email, data: {} }),
+        body: JSON.stringify({ email, data: registration }),
         headers: {
           "Content-Type": "application/json",
         },
@@ -68,10 +72,12 @@ document
         throw new Error(data.message);
       }
 
-      // TODO: Implement passkeys authentication
+      const authentication = await SimpleWebAuthnBrowser.startAuthentication(
+        data
+      );
 
       response = await fetch("/api/signin/finish", {
-        body: JSON.stringify({ email, data: {} }),
+        body: JSON.stringify({ email, data: authentication }),
         headers: {
           "Content-Type": "application/json",
         },
